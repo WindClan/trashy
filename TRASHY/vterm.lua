@@ -1,23 +1,46 @@
 -- virtual terminal for trashy
 -- since its vital to literally everything the OS does it's not a driver.
 local sizeX1,sizeY1 = screen.getSize()
-local termSizeX, termSizeY = math.floor((sizeX1-1)/20)*20, math.floor((sizeY1-1)/24)*24
+local termSizeX, termSizeY = math.floor((sizeX1-1)/8)*8, math.floor((sizeY1-1)/16)*16
 local topX, topY = (sizeX1/2)-(termSizeX/2), (sizeY1/2)-(termSizeY/2)
-local termTable = table.create((termSizeY/24)*(termSizeX/20))
-for i=1,termSizeY/24 do
-    local a = table.create(termSizeX/20)
-    for i1=1,termSizeX/20 do
+local termTable = table.create((termSizeY/16)*(termSizeX/8))
+for i=1,termSizeY/16 do
+    local a = table.create(termSizeX/8)
+    for i1=1,termSizeX/8 do
         table.insert(a," ")
     end
     table.insert(termTable,a)
 end
 
-local drawChar = import(_SYSTEM_DISK..":/TRASHY/font.lua")
+--the vterm uses a VGA BIOS font taken from here https://github.com/viler-int10h/vga-text-mode-fonts
+--it has a limited character set but it SHOULD be in the clear copyright wise since its taken from 80s hardware
+--its also era appropriate
+local color = string.char(220, 220, 200, 255)
+local none = string.char(0, 0, 0, 0)
+local fonTable = {}
+local f = files.open(_SYSTEM_DISK..":/TRASHY/ATI8X16.F16","rb")
+for i=0,255 do
+	local fnt = {}
+	for _=1,16 do
+		local lineDat = string.byte(f.read(1))
+		for x=0,7 do
+            table.insert(fnt,(((lineDat >> 8-x) & 1)~=0 and color or none)) --for some reason the font is Big Endian
+        end
+	end
+	fonTable[i] = table.concat(fnt)
+end
+f.close()
+
 local x,y = 1,1
-local sizeX, sizeY = termSizeX/20, termSizeY/24
+local sizeX, sizeY = termSizeX/8, termSizeY/16
 local vterm = {}
 function vterm.drawChar(x,y,c)
-    drawChar(topX+((x-1)*20)+1,topY+((y-1)*24)+1,c,220,220,200)
+	if not type(c) == "string" then
+		error("invalid char!!")
+	end
+	c = c:sub(1,1)
+	local charNum = fonTable[string.byte(c)] or fonTable[0]
+	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
 end
 function vterm.draw()
     screen.fill(1,1,sizeX1,sizeY1,0,0,0)
@@ -40,9 +63,14 @@ function vterm.setChar(c,x1,y1)
         c = " "
     end
     if termTable[y1] and termTable[y1][x1] then
+		local old = termTable[y1][x1]
         termTable[y1][x1] = c:sub(1,1)
-        vterm.drawChar(x1,y1,c:sub(1,1))
-        screen.draw()
+		if old ~= " " then
+			vterm.draw()
+		else
+			vterm.drawChar(x1,y1,c:sub(1,1))
+			screen.draw()
+		end
     end
 end
 
@@ -66,8 +94,14 @@ function vterm.write(str)
     end
     for i,v in pairs(split) do
         if termTable[y][x] then
+			local old = termTable[y][x]
             termTable[y][x] = v
-            vterm.drawChar(x,y,v)
+            if old ~= " " then
+				vterm.draw()
+			else
+				vterm.drawChar(x,y,v)
+				screen.draw()
+			end
         end
         x = x + 1
     end
@@ -91,7 +125,14 @@ function vterm.print(...)
 			x += sizeX*50
 		else
 			if termTable[y][x] then
+				local old = termTable[y][x]
 				termTable[y][x] = v
+				if old ~= " " then
+					vterm.draw()
+				else
+					vterm.drawChar(x,y,v)
+					screen.draw()
+				end
 			end
 			x = x + 1
 			if x > sizeX then
@@ -109,7 +150,7 @@ function vterm.print(...)
     if y > sizeY then
         vterm.scroll(1);
     end
-    vterm.draw()
+	screen.draw()
 end
 
 function vterm.scroll(i)
@@ -117,7 +158,7 @@ function vterm.scroll(i)
         termTable[i1-i+1] = termTable[i1+1]
     end
     for i1=sizeY-i+1,sizeY do
-        local a = {}
+        local a = table.create(sizeX)
         for i1=1,sizeX do
             table.insert(a," ")
         end
@@ -140,6 +181,7 @@ function vterm.clear()
 		table.insert(newTable,a)
 	end
 	termTable = newTable
+	vterm.draw()
 end
 
 return vterm

@@ -5,7 +5,7 @@ if not args[1] == "THIS_IS_THE_KERNEL_PLEASE_LAUNCH_THE_SHELL" then
 end
 
 local currentDisk = _SYSTEM_DISK
-local currentDir = ""
+local currentDir = "/"
 
 function _G._getCurrentDisk()
 	return currentDisk
@@ -21,7 +21,24 @@ function _G._getCurrentDir()
 end
 
 function _G._setCurrentDir(d)
-	currentDir = d
+	local resolved = {}
+	for i,v in pairs(d:split("/")) do
+		if v == ".." then
+			table.remove(resolved)
+		elseif v ~= "." then
+			table.insert(resolved,v)
+		end
+	end
+	local newDir = table.concat(resolved,"/").."/"
+	if files.isDir(currentDisk..":"..newDir) then
+		currentDir = newDir
+		return true
+	end
+	return false
+end
+
+function _G.getWorkingPath()
+	return currentDisk..":"..currentDir
 end
 
 local function fileExists(path)
@@ -34,12 +51,25 @@ local function fileExists(path)
 end
 
 local function resolveProgramPath(path)
-	return fileExists(path) or fileExists(_SYSTEM_DISK..":/TRASHY/path/"..path) or fileExists(currentDisk..":/"..currentDir..path)
+	return fileExists(path) or fileExists(_SYSTEM_DISK..":TRASHY/path/"..path) or fileExists(currentDisk..":"..currentDir..path)
 end
 
 while true do
-    vterm.write((currentDisk..":/"..currentDir.."> "):upper())
+    vterm.write((currentDisk..":"..currentDir.."> "):upper())
     local i = input()
+	if i:sub(#i,#i) == ":" then
+		local s,e = pcall(function()
+			if files.isDir(i.."/") then
+				_setCurrentDisk(i:sub(1,#i-1))
+			else
+				vterm.print("Invalid device "..i:upper())
+			end
+		end)
+		if not s then
+			vterm.print("Invalid device "..i:upper())
+		end
+		continue
+	end
 	local sp =  i:split(" ")
 	local prog = table.remove(sp,1)
 	if not prog then

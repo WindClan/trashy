@@ -83,7 +83,7 @@ setmetatable(newFiles,newFilesMeta)
 _G.files = newFiles
 
 print("Loading virtual terminal system...")
-local vterm = import(sysDisk..":/TRASHY/vterm.lua")
+local vterm = import(sysDisk..":TRASHY/vterm.lua")
 print("Loaded!")
 
 vterm.print("Starting TRASHY...")
@@ -260,7 +260,7 @@ driverGlobalApi._USERLAND = globalApi
 --start the coroutine loop
 table.insert(coroutineStack,coroutine.create(function()
 	vterm.print()
-	launchProgram(_SYSTEM_DISK..":/TRASHY/shell.lua","THIS_IS_THE_KERNEL_PLEASE_LAUNCH_THE_SHELL")
+	launchProgram(_SYSTEM_DISK..":TRASHY/shell.lua","THIS_IS_THE_KERNEL_PLEASE_LAUNCH_THE_SHELL")
     vterm.print("Uh oh! It looks like the shell crashed! This shouldn't happen.")
     vterm.print("Please restart the computer to continue operation.")
     while true do
@@ -269,8 +269,8 @@ table.insert(coroutineStack,coroutine.create(function()
 end))
 
 print("Starting driver system...")
-for _,v in pairs(files.getChildren(_SYSTEM_DISK..":/TRASHY/drivers")) do
-	installDriver(_SYSTEM_DISK..":/TRASHY/drivers/"..v)
+for _,v in pairs(files.getChildren(_SYSTEM_DISK..":TRASHY/drivers")) do
+	installDriver(_SYSTEM_DISK..":TRASHY/drivers/"..v)
 end
 
 local withoutYield = 0
