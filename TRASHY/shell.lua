@@ -55,7 +55,7 @@ local function resolveProgramPath(path)
 end
 
 while true do
-    vterm.write((currentDisk..":"..currentDir.."> "):upper())
+    vterm.write(currentDisk:upper()..":"..currentDir.."> ")
     local i = input()
 	if i:sub(#i,#i) == ":" then
 		local s,e = pcall(function()
