@@ -7,7 +7,7 @@ local termTable = table.create((termSizeY/16)*(termSizeX/8))
 for i=1,termSizeY/16 do
     local a = table.create(termSizeX/8)
     for i1=1,termSizeX/8 do
-        table.insert(a," ")
+        table.insert(a,32)
     end
     table.insert(termTable,a)
 end
@@ -48,6 +48,7 @@ local function generateFontFromColor(r,g,b,a)
 end
 
 local bkg = {0,0,0}
+local bkgChar = string.char(0, 0, 0, 255)
 local bkgSquare = string.char(0, 0, 0, 255):rep(128)
 local font = generateFontFromColor(220,220,200,255)
 
@@ -59,8 +60,7 @@ function vterm.drawChar(x,y,c)
 	if not type(c) == "string" then
 		error("invalid char!!")
 	end
-	c = c:sub(1,1)
-	local charNum = font[string.byte(c)] or font[0]
+	local charNum = font[c] or font[0]
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
 end
 function vterm.blankChar(x,y)
@@ -68,13 +68,14 @@ function vterm.blankChar(x,y)
 end
 function vterm.draw()
     screen.fill(table.unpack(bkg))
-    for y,v in pairs(termTable) do
-        for x,c in pairs(v) do
-			if c ~= " " then
-				vterm.drawChar(x,y,c)
-			end
-        end
-    end
+	local columnSize = sizeY*16
+	for x=1,sizeX do
+		local column = {}
+		for _,v in ipairs(termTable) do
+			table.insert(column,font[v[x]] or font[0])
+		end
+		screen.drawPixels(topX+((x-1)*8)+1,topY+1,table.concat(column),8,columnSize)
+	end
     screen.draw()
 end
 function vterm.setForegroundColor(r,g,b,a)
@@ -86,6 +87,7 @@ function vterm.setForegroundColor(r,g,b,a)
 end
 function vterm.setBackgroundColor(r,g,b)
 	bkg = {r,g,b}
+	bkgChar = string.char(r,g,b, 255)
 	bkgSquare = string.char(r,g,b, 255):rep(128)
 	vterm.draw()
 end
@@ -96,17 +98,17 @@ function vterm.setChar(c,x1,y1)
     if not y1 then
         y1 = y
     end
-    if c == "" then
-        c = " "
-    end
-	c = c:sub(1,1)
+	if c == "" then
+		c = " "
+	end
     if termTable[y1] and termTable[y1][x1] then
 		local old = termTable[y1][x1]
-		if old ~= " " then
+		if old ~= 32 and old ~= 0 then
 			vterm.blankChar(x,y)
 		end
-        termTable[y1][x1] = c
-		vterm.drawChar(x1,y1,c)
+		local byteChar = string.byte(c)
+        termTable[y1][x1] = byteChar
+		vterm.drawChar(x1,y1,byteChar)
 		screen.draw()
     end
 end
@@ -129,20 +131,60 @@ function vterm.write(str)
     for i=1,#str do
         table.insert(split,str:sub(i,i))
     end
-    for i,v in pairs(split) do
+	local buffer = table.create(16)
+    for i,v in ipairs(split) do
         if termTable[y][x] then
+			local byteChar = string.byte(v)
 			local old = termTable[y][x]
-			if old ~= " " then
+			local new = font[byteChar]
+			if old ~= 32 and old ~= 0 then
 				vterm.blankChar(x,y)
 			end
-            termTable[y][x] = v
-			vterm.drawChar(x,y,v)
-			screen.draw()
+			termTable[y][x] = byteChar
+			vterm.drawChar(x,y,byteChar)
         end
         x = x + 1
     end
     screen.draw()
 end
+--WIP batched `vterm.write`, seems to not work due to a bug
+--[[
+function vterm.write(str)
+	str = tostring(str)
+    local split = {}
+    for i=1,#str do
+        table.insert(split,str:sub(i,i))
+    end
+	local buffer = table.create(16)
+	for i=1,16 do
+		table.insert(buffer,{})
+	end
+	local startX = x
+    for i,v in ipairs(split) do
+        if termTable[y][x] then
+			local byteChar = string.byte(v)
+			local old = termTable[y][x]
+			local new = font[byteChar]
+			if old ~= 32 and old ~= 0 then
+				new = new:gsub("\00",bkgChar)
+			end
+			termTable[y][x] = byteChar
+			for i1,v1 in ipairs(buffer) do
+				table.insert(v1,new:sub((i1-1)*8+1,((i1-1)*8)+8))
+			end
+        end
+        x = x + 1
+    end
+	local newBuffer = table.create(16)
+	for i,v in ipairs(buffer) do
+		table.insert(newBuffer,table.concat(v))
+	end
+	local newNewBuffer = table.concat(newBuffer)
+	log(#newNewBuffer)
+	log(#buffer[1])
+	screen.drawPixels(topX+((startX-1)*8)+1,topY+((y-1)*16)+1,newNewBuffer,8,16*#buffer[1])
+end
+]]
 
 function vterm.print(...)
 	local str = ""
@@ -162,12 +204,12 @@ function vterm.print(...)
 		else
 			if termTable[y][x] then
 				local old = termTable[y][x]
-				if old ~= " " then
+				if old ~= 32 and old ~= 0 then
 					vterm.blankChar(x,y)
 				end
-				termTable[y][x] = v
-				vterm.drawChar(x,y,v)
-				screen.draw()
+				local byteChar = string.byte(v)
+				termTable[y][x] = byteChar
+				vterm.drawChar(x,y,byteChar)
 			end
 			x = x + 1
 			if x > sizeX then
@@ -195,7 +237,7 @@ function vterm.scroll(i)
     for i1=sizeY-i+1,sizeY do
         local a = table.create(sizeX)
         for i1=1,sizeX do
-            table.insert(a," ")
+            table.insert(a,32)
         end
         termTable[i1] = a
     end
@@ -211,7 +253,7 @@ function vterm.clear()
 	for i=1,sizeY do
 		local a = table.create(sizeX)
 		for i1=1,sizeX do
-			table.insert(a," ")
+			table.insert(a,32)
 		end
 		table.insert(newTable,a)
 	end
