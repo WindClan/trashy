@@ -16,13 +16,14 @@ end
 --it has a limited character set but it SHOULD be in the clear copyright wise since its taken from 80s hardware
 --its also era appropriate
 local fonTable = table.create(255,1)
+local none = string.char(0, 0, 0, 0)
 local f = files.open(_SYSTEM_DISK..":/TRASHY/ATI8X16.F16","rb")
 for i=0,255 do
 	local fnt = {}
 	for _=1,16 do
 		local lineDat = string.byte(f.read(1))
 		for x=0,7 do
-			table.insert(fnt,(((lineDat >> 8-x) & 1)~=0 and "#" or string.char(0, 0, 0, 0))) --for some reason the font is Big Endian
+			table.insert(fnt,(((lineDat >> 8-x) & 1)~=0 and "#" or none)) --for some reason the font is Big Endian
 		end
 	end
 	if i==0 then
@@ -57,24 +58,25 @@ local sizeX, sizeY = termSizeX/8, termSizeY/16
 local vterm = {}
 vterm.generateFontFromColor = generateFontFromColor
 function vterm.drawChar(x,y,c)
-	if not type(c) == "string" then
-		error("invalid char!!")
-	end
 	local charNum = font[c] or font[0]
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
 end
 function vterm.blankChar(x,y)
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,bkgSquare,8,16)
 end
+local columnSize = sizeY*16
+local emptyColumn = none:rep(8*16*sizeY)
 function vterm.draw()
     screen.fill(table.unpack(bkg))
-	local columnSize = sizeY*16
 	for x=1,sizeX do
 		local column = {}
 		for _,v in ipairs(termTable) do
 			table.insert(column,font[v[x]] or font[0])
 		end
-		screen.drawPixels(topX+((x-1)*8)+1,topY+1,table.concat(column),8,columnSize)
+		local conc = table.concat(column)
+		if conc ~= emptyColumn then
+			screen.drawPixels(topX+((x-1)*8)+1,topY+1,conc,8,columnSize)
+		end
 	end
     screen.draw()
 end
