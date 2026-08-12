@@ -54,6 +54,7 @@ local font = generateFontFromColor(220,220,200,255)
 local x,y = 1,1
 local sizeX, sizeY = termSizeX/8, termSizeY/16
 local vterm = {}
+vterm.generateFontFromColor = generateFontFromColor
 function vterm.drawChar(x,y,c)
 	if not type(c) == "string" then
 		error("invalid char!!")
