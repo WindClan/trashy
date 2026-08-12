@@ -43,10 +43,12 @@ function vterm.drawChar(x,y,c)
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
 end
 function vterm.draw()
-    screen.fill(1,1,sizeX1,sizeY1,0,0,0)
+    screen.fill(0,0,0)
     for y,v in pairs(termTable) do
         for x,c in pairs(v) do
-            vterm.drawChar(x,y,c)
+			if c ~= " " then
+				vterm.drawChar(x,y,c)
+			end
         end
     end
     screen.draw()
@@ -62,15 +64,12 @@ function vterm.setChar(c,x1,y1)
     if c == "" then
         c = " "
     end
+	c = c:sub(1,1)
     if termTable[y1] and termTable[y1][x1] then
 		local old = termTable[y1][x1]
-        termTable[y1][x1] = c:sub(1,1)
-		if old ~= " " then
-			vterm.draw()
-		else
-			vterm.drawChar(x1,y1,c:sub(1,1))
-			screen.draw()
-		end
+        termTable[y1][x1] = c
+		vterm.drawChar(x1,y1,c)
+		screen.draw()
     end
 end
 
@@ -96,12 +95,8 @@ function vterm.write(str)
         if termTable[y][x] then
 			local old = termTable[y][x]
             termTable[y][x] = v
-            if old ~= " " then
-				vterm.draw()
-			else
-				vterm.drawChar(x,y,v)
-				screen.draw()
-			end
+			vterm.drawChar(x,y,v)
+			screen.draw()
         end
         x = x + 1
     end
@@ -127,12 +122,8 @@ function vterm.print(...)
 			if termTable[y][x] then
 				local old = termTable[y][x]
 				termTable[y][x] = v
-				if old ~= " " then
-					vterm.draw()
-				else
-					vterm.drawChar(x,y,v)
-					screen.draw()
-				end
+				vterm.drawChar(x,y,v)
+				screen.draw()
 			end
 			x = x + 1
 			if x > sizeX then
