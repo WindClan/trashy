@@ -119,7 +119,6 @@ local function input()
                     end
                     vterm.setCursorPos(posX,posY)
                     vterm.setChar("",posX,posY)
-                    vterm.draw()
                 end
             else
                 if posX > sizeX then
@@ -129,11 +128,8 @@ local function input()
                     if posY > sizeY then
                         vterm.scroll(1)
                     end
-                    vterm.draw()
                 end
                 vterm.write(n[3])
-                vterm.draw()
-                screen.draw()
                 str = str .. n[3]
             end
         end
@@ -273,7 +269,6 @@ for _,v in pairs(files.getChildren(_SYSTEM_DISK..":TRASHY/drivers")) do
 	installDriver(_SYSTEM_DISK..":TRASHY/drivers/"..v)
 end
 
-local withoutYield = 0
 while true do
     local currentProg = coroutineStack[#coroutineStack]
     local currentEvent = getNextEvent()
@@ -298,11 +293,5 @@ while true do
         else
             error("Cosmic ray detected in driver stack! coroutine:"..coroutine.status(v))
         end
-    end
-    if #currentEvent == 0 or withoutYield > 99 then
-        coroutine.yield()
-        withoutYield = 0
-    else
-        withoutYield = withoutYield + 1
     end
 end

@@ -17,6 +17,7 @@ end
 --its also era appropriate
 local color = string.char(220, 220, 200, 255)
 local none = string.char(0, 0, 0, 0)
+local bkgSquare = string.char(0, 0, 0, 255):rep(128)
 local fonTable = {}
 local f = files.open(_SYSTEM_DISK..":/TRASHY/ATI8X16.F16","rb")
 for i=0,255 do
@@ -41,6 +42,9 @@ function vterm.drawChar(x,y,c)
 	c = c:sub(1,1)
 	local charNum = fonTable[string.byte(c)] or fonTable[0]
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
+end
+function vterm.blankChar(x,y)
+	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,bkgSquare,8,16)
 end
 function vterm.draw()
     screen.fill(0,0,0)
@@ -67,6 +71,9 @@ function vterm.setChar(c,x1,y1)
 	c = c:sub(1,1)
     if termTable[y1] and termTable[y1][x1] then
 		local old = termTable[y1][x1]
+		if old ~= " " then
+			vterm.blankChar(x,y)
+		end
         termTable[y1][x1] = c
 		vterm.drawChar(x1,y1,c)
 		screen.draw()
@@ -94,6 +101,9 @@ function vterm.write(str)
     for i,v in pairs(split) do
         if termTable[y][x] then
 			local old = termTable[y][x]
+			if old ~= " " then
+				vterm.blankChar(x,y)
+			end
             termTable[y][x] = v
 			vterm.drawChar(x,y,v)
 			screen.draw()
@@ -121,6 +131,9 @@ function vterm.print(...)
 		else
 			if termTable[y][x] then
 				local old = termTable[y][x]
+				if old ~= " " then
+					vterm.blankChar(x,y)
+				end
 				termTable[y][x] = v
 				vterm.drawChar(x,y,v)
 				screen.draw()
