@@ -147,44 +147,6 @@ function vterm.write(str)
     end
     screen.draw()
 end
---WIP batched `vterm.write`, seems to not work due to a bug
---[[
-function vterm.write(str)
-	str = tostring(str)
-    local split = {}
-    for i=1,#str do
-        table.insert(split,str:sub(i,i))
-    end
-	local buffer = table.create(16)
-	for i=1,16 do
-		table.insert(buffer,{})
-	end
-	local startX = x
-    for i,v in ipairs(split) do
-        if termTable[y][x] then
-			local byteChar = string.byte(v)
-			local old = termTable[y][x]
-			local new = font[byteChar]
-			if old ~= 32 and old ~= 0 then
-				new = new:gsub("\00",bkgChar)
-			end
-			termTable[y][x] = byteChar
-			for i1,v1 in ipairs(buffer) do
-				table.insert(v1,new:sub((i1-1)*8+1,((i1-1)*8)+8))
-			end
-        end
-        x = x + 1
-    end
-	local newBuffer = table.create(16)
-	for i,v in ipairs(buffer) do
-		table.insert(newBuffer,table.concat(v))
-	end
-	local newNewBuffer = table.concat(newBuffer)
-	log(#newNewBuffer)
-	log(#buffer[1])
-	screen.drawPixels(topX+((startX-1)*8)+1,topY+((y-1)*16)+1,newNewBuffer,8,16*#buffer[1])
-end
-]]
 
 function vterm.print(...)
 	local str = ""
