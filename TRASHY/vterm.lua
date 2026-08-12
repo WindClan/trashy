@@ -15,22 +15,41 @@ end
 --the vterm uses a VGA BIOS font taken from here https://github.com/viler-int10h/vga-text-mode-fonts
 --it has a limited character set but it SHOULD be in the clear copyright wise since its taken from 80s hardware
 --its also era appropriate
-local color = string.char(220, 220, 200, 255)
-local none = string.char(0, 0, 0, 0)
-local bkgSquare = string.char(0, 0, 0, 255):rep(128)
-local fonTable = {}
+local fonTable = table.create(255,1)
 local f = files.open(_SYSTEM_DISK..":/TRASHY/ATI8X16.F16","rb")
 for i=0,255 do
 	local fnt = {}
 	for _=1,16 do
 		local lineDat = string.byte(f.read(1))
 		for x=0,7 do
-            table.insert(fnt,(((lineDat >> 8-x) & 1)~=0 and color or none)) --for some reason the font is Big Endian
-        end
+			table.insert(fnt,(((lineDat >> 8-x) & 1)~=0 and "#" or string.char(0, 0, 0, 0))) --for some reason the font is Big Endian
+		end
 	end
-	fonTable[i] = table.concat(fnt)
+	if i==0 then
+		fonTable[0] = table.concat(fnt)
+	else
+		table.insert(fonTable,table.concat(fnt))
+	end
+	
 end
 f.close()
+local function generateFontFromColor(r,g,b,a)
+	local color = string.char(r, g, b, a)
+	local newFont = table.create(255,1)
+	for i,v in pairs(fonTable) do
+		local new = v:gsub("#",color)
+		if i==0 then
+			newFont[0] = new
+		else
+			table.insert(newFont,new)
+		end
+	end
+	return newFont
+end
+
+local bkg = {0,0,0}
+local bkgSquare = string.char(0, 0, 0, 255):rep(128)
+local font = generateFontFromColor(220,220,200,255)
 
 local x,y = 1,1
 local sizeX, sizeY = termSizeX/8, termSizeY/16
@@ -40,14 +59,14 @@ function vterm.drawChar(x,y,c)
 		error("invalid char!!")
 	end
 	c = c:sub(1,1)
-	local charNum = fonTable[string.byte(c)] or fonTable[0]
+	local charNum = font[string.byte(c)] or font[0]
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
 end
 function vterm.blankChar(x,y)
 	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,bkgSquare,8,16)
 end
 function vterm.draw()
-    screen.fill(0,0,0)
+    screen.fill(table.unpack(bkg))
     for y,v in pairs(termTable) do
         for x,c in pairs(v) do
 			if c ~= " " then
@@ -57,7 +76,18 @@ function vterm.draw()
     end
     screen.draw()
 end
-
+function vterm.setForegroundColor(r,g,b,a)
+	if not a then
+		a = 255
+	end
+	font = generateFontFromColor(r,g,b,a)
+	vterm.draw()
+end
+function vterm.setBackgroundColor(r,g,b)
+	bkg = {r,g,b}
+	bkgSquare = string.char(r,g,b, 255):rep(128)
+	vterm.draw()
+end
 function vterm.setChar(c,x1,y1)
     if not x1 then
         x1 = x
