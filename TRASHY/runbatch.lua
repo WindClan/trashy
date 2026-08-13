@@ -18,7 +18,7 @@ for _,v in pairs(lines) do
 		v = v:sub(2)
 	end
 	if p1 then
-		vterm.write(_getCurrentDisk:upper()..":".._getCurrentDir.."> "..v)
+		print(_getCurrentDisk:upper()..":".._getCurrentDir.."> "..v)
 	end
 	if v:lower() == "echo off" then
 		p = false

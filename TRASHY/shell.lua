@@ -53,6 +53,8 @@ local function fileExists(path)
 		return path
 	elseif files.isFile(path..".lua") then
 		return path..".lua"
+	elseif files.isFile(path..".bat") then
+		return path..".bat"
 	end
 	return nil
 end
