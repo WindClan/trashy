@@ -110,6 +110,7 @@ local function runCommand(i)
 	for m in i1:gmatch("%%(.*)%%") do
 		log(m)
 		local val = os.getenv(m) or ""
+		val = val:gsub("%%","%%%%")
 		i = i:gsub("%%".._makeReplaceSafe(m).."%%",val)
 	end
 	local sp1 =  i:split(" ")

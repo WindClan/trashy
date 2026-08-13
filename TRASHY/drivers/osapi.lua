@@ -38,6 +38,9 @@ function os.time(opt)
 	if not opt then
 		return math.floor(chip.getUnixTime())
 	end
+	if type(opt) == "boolean" and opt then
+		return chip.getLunarTime()
+	end
 	assert(opt ~= nil and type(opt) == "table", "The time argument has to be a table!")
 	assert(opt.year ~= nil and type(opt.year) == "number", "The time table requires a valid year argument!")
 	assert(opt.month ~= nil and type(opt.month) == "number", "The time table requires a valid month argument!")
@@ -70,7 +73,9 @@ function os.time(opt)
 	retTime += opt.sec
 	return retTime
 end
+os.clock = chip.getTime
 os.shutdown = chip.shutdown
 os.reboot = chip.reboot
+os.installDriver = driver.installDriver
 
 globals.os = os
