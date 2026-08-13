@@ -1,12 +1,10 @@
-local dir = _getCurrentDir()
-local disk = _getCurrentDisk()
 local toProbe = ({...})[1] or ""
 
-local finalDir = disk..":"..dir.."/"..toProbe
+local finalDir = getWorkingPath().."/"..toProbe
 local split = toProbe:split("/")
 local match = "^(.*)"
 local match1 = table.remove(split) or ""
-local finalDir1 = disk..":"..dir.."/"..table.concat(split,"/")
+local finalDir1 = getWorkingPath().."/"..table.concat(split,"/")
 if not files.isDir(finalDir) and files.isDir(finalDir1) then
 	finalDir = finalDir1
 	match = "^".._makeMatchSafe(match1)
