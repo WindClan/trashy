@@ -256,9 +256,15 @@ driverGlobalApi._USERLAND = globalApi
 --start the coroutine loop
 table.insert(coroutineStack,coroutine.create(function()
 	vterm.print()
-	launchProgram(_SYSTEM_DISK..":TRASHY/shell.lua","THIS_IS_THE_KERNEL_PLEASE_LAUNCH_THE_SHELL")
-    vterm.print("Uh oh! It looks like the shell crashed! This shouldn't happen.")
-    vterm.print("Please restart the computer to continue operation.")
+	local suc,err = pcall(launchProgram,_SYSTEM_DISK..":TRASHY/shell.lua","THIS_IS_THE_KERNEL_PLEASE_LAUNCH_THE_SHELL");
+	if not suc then
+		vterm.print("It seems like the shell failed to launch!")
+		vterm.print("TRASHY most likely wasn't installed correctly.")
+		vterm.print(err)
+	else
+		vterm.print("Uh oh! It looks like the shell crashed! This shouldn't happen.")
+		vterm.print("Please restart the computer to continue operation.")
+	end
     while true do
         coroutine.yield()
     end
@@ -274,6 +280,7 @@ while true do
     local currentEvent = getNextEvent()
     if currentProg == nil then
         while true do
+			log(#coroutineStack)
             error("This REALLY shouldn't happen! Please report this bug to redtoast/NeetComputers!")
         end
     else

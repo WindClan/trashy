@@ -41,6 +41,10 @@ function _G.getWorkingPath()
 	return currentDisk..":"..currentDir
 end
 
+function _G._makeMatchSafe(str)
+	return str:gsub("%%","%%%%"):gsub("%.","%%."):gsub("%+","%%+"):gsub("%$","%%$"):gsub("%-","%%-"):gsub("%^","%%^"):gsub("*","(.*)")
+end
+
 local function fileExists(path)
 	if files.isFile(path) then
 		return path
@@ -54,9 +58,7 @@ local function resolveProgramPath(path)
 	return fileExists(path) or fileExists(_SYSTEM_DISK..":TRASHY/path/"..path) or fileExists(currentDisk..":"..currentDir..path)
 end
 
-while true do
-    vterm.write(currentDisk:upper()..":"..currentDir.."> ")
-    local i = input()
+local function runCommand(i)
 	if i:sub(#i,#i) == ":" then
 		local s,e = pcall(function()
 			if files.isDir(i.."/") then
@@ -68,12 +70,12 @@ while true do
 		if not s then
 			vterm.print("Invalid device "..i:upper())
 		end
-		continue
+		return
 	end
 	local sp =  i:split(" ")
 	local prog = table.remove(sp,1)
 	if not prog then
-		continue
+		return
 	end
 	local progPath = resolveProgramPath(prog:lower())
 	if not progPath then
@@ -88,4 +90,9 @@ while true do
 	if cursorPos ~= 1 then
 		vterm.print()
 	end
+end
+
+while true do
+    vterm.write(currentDisk:upper()..":"..currentDir.."> ")
+	runCommand(input())
 end

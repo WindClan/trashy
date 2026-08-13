@@ -17,14 +17,5 @@ for _,v in pairs(files.getChildren(finalDir)) do
 	if not v:match(match) then
 		continue
 	end
-	local stringToPrint = v
-	if files.isDir(finalDir.."/"..v) then
-		stringToPrint ..= "/"
-	end
-	stringToPrint ..= " "
-	local xPos = vterm.getCursorPos()
-	if xPos+#stringToPrint > x then
-		vterm.print()
-	end
-	vterm.write(stringToPrint)
+	files.delete(finalDir.."/"..v)
 end
