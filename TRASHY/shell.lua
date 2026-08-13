@@ -4,6 +4,17 @@ if not args[1] == "THIS_IS_THE_KERNEL_PLEASE_LAUNCH_THE_SHELL" then
 	return
 end
 
+local defaultAliases = {
+	"chdir=".._SYSTEM_DISK..":TRASHY/path/cd.lua",
+	"clr=".._SYSTEM_DISK..":TRASHY/path/clear.lua",
+	"erase=".._SYSTEM_DISK..":TRASHY/path/del.lua",
+	"md=".._SYSTEM_DISK..":TRASHY/path/mkdir.lua",
+	"ren=".._SYSTEM_DISK..":TRASHY/path/rename.lua",
+	"rd=".._SYSTEM_DISK..":TRASHY/path/del.lua"
+}
+os.setenv("alias",table.concat(defaultAliases,";"))
+os.setenv("path",_SYSTEM_DISK..":TRASHY/path;")
+
 local currentDisk = _SYSTEM_DISK
 local currentDir = "/"
 
@@ -71,6 +82,16 @@ local function resolveProgramPath(path)
 	end
 end
 
+local function aliasExists(path)
+	local alias = os.getenv("alias"):split(";")
+	for _,v in ipairs(alias) do
+		local split = v:split("=")
+		if split[1] == path and split[2] then
+			return split[2]
+		end
+	end
+end
+
 local function runCommand(i)
 	if i:sub(#i,#i) == ":" then
 		local s,e = pcall(function()
@@ -125,7 +146,13 @@ local function runCommand(i)
 		return
 	end
 	local progPath = resolveProgramPath(prog:lower())
-	if not progPath then
+	local alias = aliasExists(prog:lower())
+	if not progPath and alias then
+		local suc, err = pcall(launchProgram,alias,table.unpack(sp))
+		if not suc then
+			vterm.print(err)
+		end
+	elseif not progPath then
 		vterm.print("Bad command or filename - "..prog)
 	else
 		if progPath:sub(-4) == ".bat" then
@@ -145,7 +172,6 @@ local function runCommand(i)
 		vterm.print()
 	end
 end
-os.setenv("path",_SYSTEM_DISK..":TRASHY/path;")
 _G.os.execute = runCommand
 if files.isFile(_SYSTEM_DISK..":autoexec.bat") then
 	launchProgram(_SYSTEM_DISK..":TRASHY/runbatch.lua",_SYSTEM_DISK..":autoexec.bat")

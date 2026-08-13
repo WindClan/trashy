@@ -28,19 +28,9 @@ _G.import = import
 
 --this was defined in the shell previously but we need it here for our files shim
 local function splitStr(i, sep)
-	local split = {} --for some ungodly reason gsub didn't find any matches. this is the hack to get around that
-	local last = ""
-	for l=1,#i do
-		local let = i:sub(l,l)
-		if let == sep then
-			table.insert(split,last)
-			last = ""
-		else
-			last ..= let
-		end
-	end
-	if last ~= "" then
-		table.insert(split,last)
+	local split = {}
+	for m in i:gmatch("([^"..sep.."]+)") do
+		table.insert(split,m)
 	end
 	return split
 end

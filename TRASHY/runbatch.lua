@@ -10,15 +10,38 @@ local f = files.open(file,"r")
 local fdat = f.read("a")
 f.close()
 local lines = fdat:gsub("\r\n","\n"):split("\n")
+local labels = {}
+local i = 1
+while i <= #lines do
+	local v = lines[i]
+	if v:sub(1,1) == ":" then
+		labels[v:sub(2):lower()] = i
+		table.remove(lines,i)
+		i-=1
+	end
+	i+=1
+end
+for i,v in ipairs(lines) do
+
+end
 local p = true
-for _,v in pairs(lines) do
+local i = 1
+while i <= #lines do
+	local v = lines[i]
 	local p1 = p
 	if v:sub(1,1) == "@" then
 		p1 = false
 		v = v:sub(2)
 	end
+	if v:sub(1,5) == "goto " then
+		local label = v:sub(6):lower()
+		if labels[label] then
+			i = labels[label]
+			continue
+		end
+	end
 	if p1 then
-		print(_getCurrentDisk:upper()..":".._getCurrentDir.."> "..v)
+		print(_getCurrentDisk():upper()..":".._getCurrentDir().."> "..v)
 	end
 	if v:lower() == "echo off" then
 		p = false
@@ -27,4 +50,5 @@ for _,v in pairs(lines) do
 	else
 		os.execute(v)
 	end
+	i += 1
 end
