@@ -160,15 +160,15 @@ local function launchProgram(path,...progargs)
                 end
             end)
             if not worked then
-                error("Failure while loading program "..path.."! Err="..progFunc);
+                error("Failure while loading program "..path.."! Err="..progFunc,0);
             else
                 table.insert(coroutineStack,progFunc)
             end
         else
-            error("Failed to load program "..path.."! Err="..err)
+            error("Failed to load program "..path.."! Err="..err,0)
         end
     else
-        error("File "..path.." does not exist!")
+        error("File "..path.." does not exist!",2)
     end
     coroutine.yield()
 end
@@ -188,14 +188,13 @@ local function deepCopyTable(oldTab)
 end
 _G.table.copy = deepCopyTable
 
+local function makeGetter(v)
+	return function() return v end
+end
+
 --driverland background tasks
 local driverGlobalApi = {}
 local driverStack = {}
-table.insert(driverStack,coroutine.create(function()
-    while true do
-        coroutine.yield()
-    end
-end))
 
 --the thing that returns the next event
 local cats = {
@@ -221,7 +220,7 @@ local function installDriver(path)
         local prog, err = load(dat,path,"t",driverGlobalApi)
 		if prog then
             local suc,err = pcall(prog)
-			if not err then
+			if not suc then
 				vterm.print("Failed to start driver "..path.."! Err="..err)
 			end
         else
@@ -243,15 +242,33 @@ globalApi.print = vterm.print
 globalApi.launchProgram = launchProgram
 globalApi._G = globalApi
 
---add APIs to userland globals
+local driverApi = {}
+driverApi.installDriver = installDriver
+driverApi.getUserlandGlobals = makeGetter(globalApi)
+driverApi.getProgramStack = makeGetter(coroutineStack)
+function driverApi.getBackgroundTaskStatus(taskId)
+	if driverStack[taskId] then
+		return coroutine.status(driverStack[taskId])
+	end
+end
+function driverApi.addBackgroundTask(taskId,func)
+	if not driverStack[taskId] then
+		driverStack[taskId] = coroutine.create(func)
+	end
+	return false
+end
+function driverApi.killBackgroundTask(taskId)
+	driverStack[taskId] = nil
+end
+
+--add APIs to driverland globals
 driverGlobalApi = deepCopyTable(_G)
 driverGlobalApi.debug = nil
 driverGlobalApi.event = nil
 driverGlobalApi.vterm = nil
 driverGlobalApi.sleep = sleep
-driverGlobalApi.launchProgram = launchProgram
+driverGlobalApi.driver = driverApi
 driverGlobalApi._G = driverGlobalApi
-driverGlobalApi._USERLAND = globalApi
 
 --start the coroutine loop
 table.insert(coroutineStack,coroutine.create(function()
