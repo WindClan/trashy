@@ -59,15 +59,16 @@ local vterm = {}
 vterm.generateFontFromColor = generateFontFromColor
 function vterm.drawChar(x,y,c)
 	local charNum = font[c] or font[0]
-	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,charNum,8,16)
+	screen.writeData(topX+((x-1)*8),topY+((y-1)*16),charNum,8)
 end
 function vterm.blankChar(x,y)
-	screen.drawPixels(topX+((x-1)*8)+1,topY+((y-1)*16)+1,bkgSquare,8,16)
+	screen.writeData(topX+((x-1)*8),topY+((y-1)*16),bkgSquare,8)
 end
-local columnSize = sizeY*16
 local emptyColumn = none:rep(8*16*sizeY)
 function vterm.draw()
-    screen.fill(table.unpack(bkg))
+    for x=1,sizeX do
+		screen.writeData(topX+((x-1)*8),topY,bkgChar:rep(8*16*sizeY),8)
+	end
 	for x=1,sizeX do
 		local column = {}
 		for _,v in ipairs(termTable) do
@@ -75,7 +76,7 @@ function vterm.draw()
 		end
 		local conc = table.concat(column)
 		if conc ~= emptyColumn then
-			screen.drawPixels(topX+((x-1)*8)+1,topY+1,conc,8,columnSize)
+			screen.writeData(topX+((x-1)*8),topY,conc,8)
 		end
 	end
     screen.draw()
